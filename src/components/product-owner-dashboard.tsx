@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { DateRange } from "react-day-picker"
-import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek, getYear, addWeeks } from "date-fns"
+import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek, getYear } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
