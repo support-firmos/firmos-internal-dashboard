@@ -1,5 +1,27 @@
 "use client"
 
+type DataPoint = {
+  week: string;
+  startDate: string;
+  featureDeliveryRate: number;
+  bugResolutionRate: number;
+  timeSpentOnApp: number;
+  featureUsageRate: number;
+  [key: string]: string | number;
+}
+
+type TooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+}
+
+type TooltipPayloadEntry = {
+  payload: DataPoint;
+  name: string;
+  value: number;
+  color: string;
+}
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,16 +30,15 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { DateRange } from "react-day-picker"
-import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek, getYear } from "date-fns"
+import { format, subWeeks, eachWeekOfInterval, startOfWeek, getWeek, getYear } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Helper function to generate random data
-const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | 'year') => {
+const generateRandomData = (startDate: Date, endDate: Date): DataPoint[] => {
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate })
-  return weeks.map((week, index) => {
+  return weeks.map((week) => {
     const weekStart = startOfWeek(week)
-    const weekEnd = endOfWeek(week)
     return {
       week: `Week ${getWeek(week)}`,
       startDate: format(weekStart, 'MMM dd, yyyy'),
@@ -36,7 +57,8 @@ export function ProductManagerDashboardComponent() {
     from: subWeeks(new Date(), 4),
     to: new Date(),
   })
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<DataPoint[]>([]) // Update state type
+
 
   useEffect(() => {
     let startDate: Date, endDate: Date
@@ -54,16 +76,16 @@ export function ProductManagerDashboardComponent() {
       return // Don't update if we don't have valid dates
     }
 
-    setData(generateRandomData(startDate, endDate, timeFrame === 'year' ? 'year' : 'week'))
+    setData(generateRandomData(startDate, endDate))
   }, [timeFrame, year, dateRange])
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
         <div className="bg-white p-4 border rounded shadow">
           <p className="font-bold">{`${data.week} (${data.startDate})`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipPayloadEntry, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.name}: ${entry.value.toFixed(2)}${entry.name === 'Time Spent on App' ? ' min' : '%'}`}
             </p>
@@ -75,8 +97,17 @@ export function ProductManagerDashboardComponent() {
   }
 
   const renderMetricCard = (title: string, description: string, dataKey: string, benchmark: number, valueFormatter: (value: number) => string, isPercentage: boolean = true) => {
-    const latestData = data[data.length - 1] || { [dataKey]: 0 }
-    const currentValue = latestData[dataKey] || 0
+    const latestData = data[data.length - 1] || {
+      week: '',
+      startDate: '',
+      featureDeliveryRate: 0,
+      bugResolutionRate: 0,
+      timeSpentOnApp: 0,
+      featureUsageRate: 0,
+      [dataKey]: 0
+    } as DataPoint;
+    
+    const currentValue = (latestData[dataKey] as number) || 0;
     const isGood = currentValue >= benchmark
 
     return (

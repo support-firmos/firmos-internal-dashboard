@@ -1,4 +1,34 @@
 'use client'
+// Add these type definitions at the top of the file, after the imports
+
+type DataPoint = {
+  week: string;
+  startDate: string;
+  endDate: string;
+  churnRate: number;
+  testimonialRate: number;
+  roiDelivered: number;
+  upsellRate: number;
+  [key: string]: string | number; // Add index signature
+};
+
+type TooltipProps = {
+  active?: boolean
+  payload?: {
+    payload: DataPoint
+    value: number
+    name: string
+    color: string
+  }[]
+}
+
+type TooltipPayloadEntry = {
+  payload: DataPoint
+  value: number
+  name: string
+  color: string
+}
+
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,9 +86,9 @@ const metrics: Metric[] = [
   },
 ]
 
-const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | 'year') => {
+const generateRandomData = (startDate: Date, endDate: Date) => {
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate })
-  return weeks.map((week, index) => {
+  return weeks.map((week) => {
     const weekStart = startOfWeek(week)
     const weekEnd = endOfWeek(week)
     return {
@@ -73,13 +103,14 @@ const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | '
   })
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+// Replace the CustomTooltip component with this typed version
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
       <div className="bg-white p-4 border rounded shadow">
         <p className="font-bold">{`${data.week} (${data.startDate} - ${data.endDate})`}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TooltipPayloadEntry, index: number) => (
           <p key={index} style={{ color: entry.color }}>
             {`${entry.name}: ${entry.value.toFixed(2)}${entry.name.includes('Rate') || entry.name.includes('ROI') ? '%' : ''}`}
           </p>
@@ -90,6 +121,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+
 export function CsmDashboard() {
   const [timeFrame, setTimeFrame] = useState('week')
   const [year, setYear] = useState(getYear(new Date()))
@@ -97,7 +129,7 @@ export function CsmDashboard() {
     from: subWeeks(new Date(), 4),
     to: new Date(),
   })
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<DataPoint[]>([]) // Changed from any[] to DataPoint[]
 
   useEffect(() => {
     let startDate: Date, endDate: Date
@@ -115,13 +147,14 @@ export function CsmDashboard() {
       return // Don't update if we don't have valid dates
     }
 
-    setData(generateRandomData(startDate, endDate, timeFrame === 'year' ? 'year' : 'week'))
+    setData(generateRandomData(startDate, endDate))
   }, [timeFrame, year, dateRange])
 
   const renderMetricCard = (metric: Metric) => {
-    const latestData = data[data.length - 1] || { [metric.dataKey]: 0 }
-    const currentValue = latestData[metric.dataKey] || 0
-    const isGood = metric.name === 'Customer Churn Rate' ? currentValue <= metric.benchmark : currentValue >= metric.benchmark
+    const latestData = data[data.length - 1] || { [metric.dataKey]: 0 } as DataPoint;
+    const currentValue = (latestData[metric.dataKey] as number) || 0;
+    const isGood = metric.name === 'Customer Churn Rate' ? currentValue <= metric.benchmark : currentValue >= metric.benchmark;
+  
 
     return (
       <Card key={metric.name}>

@@ -1,5 +1,35 @@
 'use client'
 
+// Add these type definitions at the top of your file after imports
+
+type Metric = {
+  name: string;
+  formula: string;
+  benchmark: number;
+  unit: string;
+}
+
+type DataPoint = {
+  week: string;
+  dateRange: string;
+  startDate: string;
+  [key: string]: string | number; // For dynamic metric values
+}
+
+type TooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+}
+
+type TooltipPayloadEntry = {
+  payload: DataPoint;
+  name: string;
+  value: number;
+  color: string;
+}
+
+
+
 import { useState, useEffect } from 'react'
 import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek } from 'date-fns'
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -12,7 +42,7 @@ import { DateRange } from "react-day-picker"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const metrics = [
+const metrics: Metric[] = [
   { name: 'CAC Ratio', formula: 'LTV / CAC', benchmark: 3, unit: ':1' },
   { name: 'Profit Allocation Ratio', formula: '(Profit Allocated / Total Revenue) × 100', benchmark: 10, unit: '%' },
   { name: 'Revenue Growth Rate', formula: '(Current Year Revenue - Previous Year Revenue) / Previous Year Revenue × 100', benchmark: 20, unit: '%' },
@@ -30,12 +60,12 @@ const metrics = [
   { name: 'Time to Close (Sales Cycle Length)', formula: 'Average time from discovery call to contract signing', benchmark: 60, unit: 'days' },
 ]
 
-const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | 'year') => {
+const generateRandomData = (startDate: Date, endDate: Date): DataPoint[] => {
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate })
-  return weeks.map((week, index) => {
+  return weeks.map((week) => {
     const weekStart = startOfWeek(week)
     const weekEnd = endOfWeek(week)
-    const weekData: any = {
+    const weekData: DataPoint = {
       week: `Week ${getWeek(week)}`,
       dateRange: `${format(weekStart, 'MMM dd')}-${format(weekEnd, 'MMM dd')}`,
       startDate: format(weekStart, 'MMM dd'),
@@ -43,15 +73,15 @@ const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | '
     metrics.forEach(metric => {
       let value: number
       if (metric.name === 'CAC Ratio') {
-        value = Math.random() * 2 + 2 // Random value between 2 and 4
+        value = Math.random() * 2 + 2
       } else if (metric.name === 'Operating Cash Flow') {
-        value = Math.random() * 1000000 - 200000 // Random value between -200,000 and 800,000
+        value = Math.random() * 1000000 - 200000
       } else if (metric.unit === '$') {
         value = Math.random() * (metric.benchmark * 1.5 - metric.benchmark * 0.5) + metric.benchmark * 0.5
       } else if (metric.unit === '%') {
         value = Math.random() * (metric.benchmark * 1.5 - metric.benchmark * 0.5) + metric.benchmark * 0.5
       } else if (metric.name === 'Time to Close (Sales Cycle Length)') {
-        value = Math.random() * 30 + 45 // Random value between 45 and 75 days
+        value = Math.random() * 30 + 45
       } else {
         value = Math.random() * (metric.benchmark * 1.5 - metric.benchmark * 0.5) + metric.benchmark * 0.5
       }
@@ -68,7 +98,7 @@ export function DashboardComponent() {
     from: subWeeks(new Date(), 4),
     to: new Date(),
   })
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<DataPoint[]>([])
 
   useEffect(() => {
     let startDate: Date, endDate: Date
@@ -86,16 +116,16 @@ export function DashboardComponent() {
       return // Don't update if we don't have valid dates
     }
 
-    setData(generateRandomData(startDate, endDate, timeFrame === 'year' ? 'year' : 'week'))
+    setData(generateRandomData(startDate, endDate))
   }, [timeFrame, year, dateRange])
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
         <div className="bg-white p-4 border rounded shadow">
           <p className="font-bold">{`${data.week} (${data.dateRange})`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipPayloadEntry, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.name}: ${entry.value.toFixed(2)}${metrics.find(m => m.name === entry.name)?.unit}`}
             </p>
@@ -106,9 +136,15 @@ export function DashboardComponent() {
     return null
   }
 
-  const renderMetricCard = (metric: any) => {
-    const latestData = data[data.length - 1] || { [metric.name]: 0 }
-    const currentValue = latestData[metric.name] || 0
+  const renderMetricCard = (metric: Metric) => {
+    const latestData = data[data.length - 1] || {
+      week: '',
+      dateRange: '',
+      startDate: '',
+      [metric.name]: 0
+    } as DataPoint;
+    
+    const currentValue = (latestData[metric.name] as number) || 0;
     const isGood = metric.name === 'CAC Ratio' 
     ? currentValue < 3  // Reversed logic for CAC Ratio
     : metric.name === 'Operating Cash Flow' 

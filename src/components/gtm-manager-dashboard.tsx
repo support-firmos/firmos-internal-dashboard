@@ -1,5 +1,35 @@
 'use client'
 
+type DataPoint = {
+  week: string;
+  startDate: string;
+  endDate: string;
+  costPerLead: number;
+  marketingSpendEfficiency: number;
+  leadQualificationRate: number;
+  meetingShowRate: number;
+  inboundLeadGenerationRate: number;
+  [key: string]: string | number;
+};
+
+type TooltipProps = {
+  active?: boolean;
+  payload?: {
+    payload: DataPoint;
+    value: number;
+    name: string;
+    color: string;
+  }[];
+};
+
+type TooltipPayloadEntry = {
+  payload: DataPoint;
+  value: number;
+  name: string;
+  color: string;
+};
+
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,9 +43,9 @@ import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Helper function to generate random data
-const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | 'year') => {
+const generateRandomData = (startDate: Date, endDate: Date): DataPoint[] => {
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate })
-  return weeks.map((week, index) => {
+  return weeks.map((week) => {
     const weekStart = startOfWeek(week)
     const weekEnd = endOfWeek(week)
     return {
@@ -31,13 +61,13 @@ const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | '
   })
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
       <div className="bg-white p-4 border rounded shadow">
         <p className="font-bold">{`${data.week} (${data.startDate} - ${data.endDate})`}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TooltipPayloadEntry, index: number) => (
           <p key={index} style={{ color: entry.color }}>
             {`${entry.name}: ${entry.value.toFixed(2)}${entry.name === 'Marketing Spend Efficiency' ? 'x' : '%'}`}
           </p>
@@ -55,7 +85,7 @@ export function GtmManagerDashboard() {
     from: subWeeks(new Date(), 4),
     to: new Date(),
   })
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<DataPoint[]>([])
 
   useEffect(() => {
     let startDate: Date, endDate: Date
@@ -73,14 +103,25 @@ export function GtmManagerDashboard() {
       return // Don't update if we don't have valid dates
     }
 
-    setData(generateRandomData(startDate, endDate, timeFrame === 'year' ? 'year' : 'week'))
+    setData(generateRandomData(startDate, endDate))
   }, [timeFrame, year, dateRange])
 
   const renderMetricCard = (title: string, description: string, dataKey: string, benchmark: number, valueFormatter: (value: number) => string, isPercentage: boolean = true) => {
-    const latestData = data[data.length - 1] || { [dataKey]: 0 }
-    const currentValue = latestData[dataKey] || 0
-    const isGood = isPercentage ? currentValue >= benchmark : currentValue <= benchmark
-
+    const latestData = data[data.length - 1] || { 
+      week: '',
+      startDate: '',
+      endDate: '',
+      costPerLead: 0,
+      marketingSpendEfficiency: 0,
+      leadQualificationRate: 0,
+      meetingShowRate: 0,
+      inboundLeadGenerationRate: 0,
+      [dataKey]: 0 
+    } as DataPoint;
+    
+    const currentValue = (latestData[dataKey] as number) || 0;
+    const isGood = isPercentage ? currentValue >= benchmark : currentValue <= benchmark;
+  
     return (
       <Card>
         <CardHeader>
@@ -91,8 +132,8 @@ export function GtmManagerDashboard() {
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
-                <XAxis 
-                  dataKey={timeFrame === 'year' ? 'week' : 'startDate'} 
+                <XAxis
+                  dataKey={timeFrame === 'year' ? 'week' : 'startDate'}
                   interval={timeFrame === 'year' ? 'preserveStartEnd' : 0}
                   tick={{ fontSize: 12 }}
                   angle={-45}
@@ -120,9 +161,8 @@ export function GtmManagerDashboard() {
           </div>
         </CardContent>
       </Card>
-    )
-  }
-
+    );
+  };
   return (
     <div className="p-8 space-y-8">
       <div className="flex justify-between items-center">

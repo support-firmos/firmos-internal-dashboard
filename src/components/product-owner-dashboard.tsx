@@ -1,5 +1,26 @@
 'use client'
 
+type DataPoint = {
+  week: string;
+  startDate: string;
+  endDate: string;
+  backlogReadinessRate: number;
+  taskAcceptanceRate: number;
+  [key: string]: string | number;
+}
+
+type TooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+}
+
+type TooltipPayloadEntry = {
+  payload: DataPoint;
+  name: string;
+  value: number;
+  color: string;
+}
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,9 +34,9 @@ import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Helper function to generate random data
-const generateRandomData = (startDate: Date, endDate: Date, interval: 'week' | 'year') => {
+const generateRandomData = (startDate: Date, endDate: Date): DataPoint[] => {
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate })
-  return weeks.map((week, index) => {
+  return weeks.map((week) => {
     const weekStart = startOfWeek(week)
     const weekEnd = endOfWeek(week)
     return {
@@ -35,7 +56,7 @@ export function ProductOwnerDashboardComponent() {
     from: subWeeks(new Date(), 4),
     to: new Date(),
   })
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<DataPoint[]>([]) // Update state type
 
   useEffect(() => {
     let startDate: Date, endDate: Date
@@ -53,16 +74,16 @@ export function ProductOwnerDashboardComponent() {
       return // Don't update if we don't have valid dates
     }
 
-    setData(generateRandomData(startDate, endDate, timeFrame === 'year' ? 'year' : 'week'))
+    setData(generateRandomData(startDate, endDate))
   }, [timeFrame, year, dateRange])
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
         <div className="bg-white p-4 border rounded shadow">
           <p className="font-bold">{`${data.week} (${data.startDate} - ${data.endDate})`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipPayloadEntry, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.name}: ${entry.value.toFixed(2)}%`}
             </p>
@@ -74,8 +95,16 @@ export function ProductOwnerDashboardComponent() {
   }
 
   const renderMetricCard = (title: string, description: string, dataKey: string, benchmark: number, valueFormatter: (value: number) => string) => {
-    const latestData = data[data.length - 1] || { [dataKey]: 0 }
-    const currentValue = latestData[dataKey] || 0
+    const latestData = data[data.length - 1] || {
+      week: '',
+      startDate: '',
+      endDate: '',
+      backlogReadinessRate: 0,
+      taskAcceptanceRate: 0,
+      [dataKey]: 0
+    } as DataPoint;
+    
+    const currentValue = (latestData[dataKey] as number) || 0;
     const isGood = currentValue >= benchmark
 
     return (
