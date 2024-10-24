@@ -1,6 +1,16 @@
 'use client'
 
-// Add these type definitions at the top of your file after imports
+import { useState, useEffect } from 'react'
+import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek } from 'date-fns'
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DateRange } from "react-day-picker"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type Metric = {
   name: string;
@@ -27,20 +37,6 @@ type TooltipPayloadEntry = {
   value: number;
   color: string;
 }
-
-
-
-import { useState, useEffect } from 'react'
-import { format, subWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, getWeek } from 'date-fns'
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { DateRange } from "react-day-picker"
-import { CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 const metrics: Metric[] = [
   { name: 'CAC Ratio', formula: 'LTV / CAC', benchmark: 3, unit: ':1' },
