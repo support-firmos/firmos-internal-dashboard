@@ -17,6 +17,7 @@ import {
   Plus,
   Sparkles,
   SquareTerminal,
+  Users,
 } from "lucide-react"
 
 import {
@@ -141,6 +142,37 @@ const data = {
           url: "/dashboard/csm",
         },
       ],
+    },
+    {
+      title: "Team Members",
+      url: "#",
+      icon: Users,
+      items: [
+        {
+          title: "Developer",
+          url: "/dashboard/developer",
+        },
+        {
+          title: "Motion Graphics Specialist",
+          url: "/dashboard/motion-graphics-specialist",
+        },
+        {
+          title: "Web Developer",
+          url: "/dashboard/web-developer",
+        },
+        {
+          title: "GHL Specialist",
+          url: "/dashboard/ghl-specialist",
+        },
+        {
+          title: "Outbound Campaign Specialist",
+          url: "/dashboard/outbound-campaign-specialist",
+        },
+        {
+          title: "Finance Specialist",
+          url: "/dashboard/finance-specialist",
+        },
+      ]
     },
   ],
 }
