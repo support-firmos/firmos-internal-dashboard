@@ -74,21 +74,21 @@ const generateRandomData = (startDate: Date, endDate: Date, clientName: string):
   // Get client multiplier
   const getClientMultiplier = (clientName: string) => {
     const multipliers: { [key: string]: number } = {
-      'FirmOS': 1.69,
+      'FirmOS': 1,
       'Acme Corp': 1.2,
-      'The CPA Dude': 0.9,
+      'The CPA Dude': 1.15,
       'Amano-FAS': 1.1,
-      'The Non-Profit CFO': 0.8,
+      'The Non-Profit CFO': 1.25,
       'Biotech CPA': 1.3,
-      'CFO Medical': 1.15,
-      'PORTICUS MARKETPLACE INC.': 1.25
+      'CFO Medical': 1.1,
+      'PORTICUS MARKETPLACE INC.': 1.35
     }
     return multipliers[clientName] || 1
   }
 
   const clientMultiplier = getClientMultiplier(clientName)
 
-  return weeks.map((week) => {
+  return weeks.map((week, index) => {
     const weekStart = startOfWeek(week)
     const weekEnd = endOfWeek(week)
     const weekData: DataPoint = {
@@ -99,20 +99,27 @@ const generateRandomData = (startDate: Date, endDate: Date, clientName: string):
 
     metrics.forEach(metric => {
       let value: number
-      const prevValue = previousValues[metric.name] || metric.benchmark
-
-      if (metric.name === 'CAC Ratio') {
-        value = prevValue * (0.9 + Math.random() * 0.2) * clientMultiplier
-      } else if (metric.name === 'Operating Cash Flow') {
-        value = prevValue + (Math.random() * 200000 - 100000) * clientMultiplier
-      } else if (metric.unit === '$') {
-        value = prevValue * (0.95 + Math.random() * 0.1) * clientMultiplier
-      } else if (metric.unit === '%') {
-        value = prevValue * (0.95 + Math.random() * 0.1) * clientMultiplier
-      } else if (metric.name === 'Time to Close (Sales Cycle Length)') {
-        value = prevValue * (0.98 + Math.random() * 0.04) * clientMultiplier
+      
+      // Initialize first week with benchmark * client multiplier
+      if (index === 0) {
+        value = metric.benchmark * clientMultiplier
       } else {
-        value = prevValue * (0.95 + Math.random() * 0.1) * clientMultiplier
+        const prevValue = previousValues[metric.name] || metric.benchmark
+        
+        // Apply smaller random variations
+        if (metric.name === 'CAC Ratio') {
+          value = prevValue * (0.95 + Math.random() * 0.1)
+        } else if (metric.name === 'Operating Cash Flow') {
+          value = prevValue + (Math.random() * 20000 - 10000) // Smaller cash flow variations
+        } else if (metric.unit === '$') {
+          value = prevValue * (0.97 + Math.random() * 0.06)
+        } else if (metric.unit === '%') {
+          value = prevValue * (0.97 + Math.random() * 0.06)
+        } else if (metric.name === 'Time to Close (Sales Cycle Length)') {
+          value = prevValue * (0.98 + Math.random() * 0.04)
+        } else {
+          value = prevValue * (0.97 + Math.random() * 0.06)
+        }
       }
 
       weekData[metric.name] = Number(value.toFixed(2))
@@ -200,25 +207,48 @@ function MetricsStandingTable({ metrics, data }: { metrics: Metric[], data: Data
 const CustomTooltip = ({ active, payload, data }: CustomTooltipProps) => {
   if (active && payload && payload.length && data) {
     const dataPoint = payload[0].payload as DataPoint;
-    const metricName = payload[0].name;
+    const metricName = payload[0].name as keyof DataPoint;
     const value = payload[0].value;
     const metric = metrics.find(m => m.name === metricName);
 
     // Add null check for value
     if (value === undefined) return null;
 
+    // Find index of current week data
+    const currentIndex = data.findIndex(d => d.week === dataPoint.week);
+    
+    // Calculate percentage change from previous week if available
+    let percentageChange: number | null = null;
+    if (currentIndex > 0 && data[currentIndex - 1]) {
+      const previousWeekData = data[currentIndex - 1];
+      const previousValue = previousWeekData[metricName];
+      if (typeof previousValue === 'number' && typeof value === 'number') {
+        percentageChange = ((value - previousValue) / previousValue) * 100;
+      }
+    }
+
+    const isPositiveChange = metric?.name === 'CAC Ratio' || 
+                            metric?.name === 'Customer Acquisition Cost (CAC)' || 
+                            metric?.name === 'Time to Close (Sales Cycle Length)'
+      ? percentageChange !== null && percentageChange < 0
+      : percentageChange !== null && percentageChange > 0;
+
     return (
-      <div className="bg-white p-4 border rounded shadow">
+      <div className="bg-white/80 backdrop-blur-sm p-4 border rounded shadow">
         <p className="font-bold">{`${dataPoint.week} (${dataPoint.dateRange})`}</p>
         <p style={{ color: 'hsl(var(--primary))' }}>
           {`${metricName}: ${value.toFixed(2)}${metric?.unit}`}
         </p>
+        {percentageChange !== null && (
+          <p className={`text-sm ${isPositiveChange ? 'text-green-600' : 'text-red-600'}`}>
+            {`Change from last week: ${percentageChange > 0 ? '+' : ''}${percentageChange.toFixed(2)}%`}
+          </p>
+        )}
       </div>
     );
   }
   return null;
 };
-
 
 export function DashboardComponent() {
   const [timeFrame, setTimeFrame] = useState("week")
@@ -265,7 +295,7 @@ export function DashboardComponent() {
         ? currentValue > 0 
         : currentValue >= metric.benchmark
     const isPercentage = metric.unit === '%'
-
+  
     const shouldShowDecimals = [
       'CAC Ratio',
       'Profit Allocation Ratio', 
@@ -280,7 +310,10 @@ export function DashboardComponent() {
   
     const valueFormatter = (value: number) => 
       `${shouldShowDecimals ? value.toFixed(2) : Math.round(value)}${metric.unit}`
-
+  
+    // Get the brand color for the selected client
+    const selectedClientColor = clients.find(client => client.name === selectedClient)?.brandColor || 'hsl(var(--primary))';
+  
     return (
       <Card key={metric.name}>
         <CardHeader>
@@ -300,12 +333,16 @@ export function DashboardComponent() {
                   )}
                   cursor={{ strokeDasharray: '3 3' }}
                 />
-                <Line type="monotone" dataKey={metric.name} stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line 
+                  type="monotone" 
+                  dataKey={metric.name} 
+                  stroke={selectedClientColor} 
+                  strokeWidth={2} 
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-4 flex items-center justify-between">
-            
             <div>
               <p className="text-sm font-medium">Current</p>
               <p className={`text-2xl font-bold ${isGood ? 'text-green-600' : 'text-red-600'}`}>
