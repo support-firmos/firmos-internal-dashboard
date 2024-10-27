@@ -60,12 +60,12 @@ const fetchClientData = async (clientKey: string, startDate: Date, endDate: Date
     setTimeout(() => {
       resolve({
         // Basic metrics
-        marketingCosts: Math.random() * 10000,
+        marketingCosts: Math.random() * 500,
         newCustomers: Math.floor(Math.random() * 100),
         avgRevenue: Math.random() * 1000,
         avgLifespan: Math.random() * 24,
         revenue: Math.random() * 100000,
-        costs: Math.random() * 50000,
+        costs: Math.random() * 1000,
         
         // Sales metrics
         currentRevenue: Math.random() * 100000,
@@ -83,7 +83,7 @@ const fetchClientData = async (clientKey: string, startDate: Date, endDate: Date
         
         // New metrics data
         ltv: Math.random() * 150000,
-        cac: Math.random() * 5000,
+        cac: Math.random() * 10,
         totalContractValue: Math.random() * 1000000,
         contractsSigned: Math.floor(Math.random() * 20),
         currentMRR: Math.random() * 50000,
@@ -489,6 +489,39 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   const [chartHeight, setChartHeight] = useState(300);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
+  // Calculate dynamic domain based on actual data values
+  const calculateDomain = () => {
+    if (!data || !clients) return [0, 100];
+
+    let min = Infinity;
+    let max = -Infinity;
+
+    data.forEach(point => {
+      clients.forEach(client => {
+        const value = point[client.key];
+        if (value !== undefined) {
+          min = Math.min(min, value);
+          max = Math.max(max, value);
+        }
+      });
+    });
+
+    // Add 10% padding above max and below min
+    const padding = (max - min) * 0.1;
+    const lowerBound = Math.max(0, min - padding); // Don't go below 0 unless data is negative
+    const upperBound = max + padding;
+
+    // If metric has defined range, use it as constraints
+    if (metric?.range) {
+      return [
+        Math.max(metric.range.min, lowerBound),
+        Math.min(metric.range.max, upperBound)
+      ];
+    }
+
+    return [lowerBound, upperBound];
+  };
+
   useEffect(() => {
     const updateDimensions = () => {
       setChartHeight(Math.min(300, window.innerHeight * 0.4));
@@ -499,6 +532,18 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  const [yMin, yMax] = calculateDomain();
+
+  // Format y-axis ticks to prevent cutoff
+  const formatYAxis = (value: number) => {
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`;
+    }
+    return value.toFixed(0);
+  };
 
   return (
     <div style={{ width: '100%', height: chartHeight }}>
@@ -513,15 +558,20 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
             tick={{ fontSize: isSmallScreen ? 10 : 12, fill: '#4B5563' }}
             tickLine={false}
             axisLine={false}
+            tickFormatter={(value) => {
+              const date = new Date(value);
+              return format(date, 'MMM d');
+            }}
           />
           <YAxis
-            domain={[metric?.range.min || 0, metric?.range.max || 100]}
+            domain={[yMin, yMax]}
             tick={{ fontSize: isSmallScreen ? 10 : 12, fill: '#4B5563' }}
             tickLine={false}
             axisLine={false}
-            width={30}
+            width={50}
+            tickFormatter={formatYAxis}
           />
-           <Tooltip content={<CustomTooltip unit={metric?.unit} data={data} />} />
+          <Tooltip content={<CustomTooltip unit={metric?.unit} data={data} />} />
           {clients.map((client) => (
             <Line
               key={client.key}
@@ -539,6 +589,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     </div>
   );
 };
+
 
 interface TooltipProps {
   active?: boolean;
@@ -561,8 +612,8 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label, unit, d
 
   // Calculate the start and end of the week
   const currentDate = new Date(label || ''); // Add fallback empty string
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming week starts on Monday
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
 
   // Format the date range
   const dateRange = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
@@ -665,13 +716,16 @@ export function ConsolidatedMetrics({
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Generate dates for last 5 periods
+        // Generate dates for last 5 periods, starting from Sunday
         const dates = Array.from({ length: 5 }, (_, i) => {
           const date = new Date(dateRange.end);
           date.setDate(date.getDate() - (i * 7));
+          // Adjust to the previous Sunday
+          const daysSinceSunday = date.getDay();
+          date.setDate(date.getDate() - daysSinceSunday);
           return date.toISOString().split('T')[0];
         }).reverse();
-
+  
         const newData = await Promise.all(dates.map(async (date) => {
           const dataPoint: any = { date };
           
@@ -689,7 +743,7 @@ export function ConsolidatedMetrics({
           
           return dataPoint;
         }));
-
+  
         setChartData(newData);
       } catch (error) {
         console.error('Error loading metric data:', error);
@@ -697,7 +751,7 @@ export function ConsolidatedMetrics({
         setIsLoading(false);
       }
     };
-
+  
     loadData();
   }, [selectedClients, selectedMetric, dateRange, currentMetric]);
 
