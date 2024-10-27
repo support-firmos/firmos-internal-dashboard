@@ -64,14 +64,15 @@ const generateMockData = () => {
   metrics.forEach(metric => {
     mockData[metric] = {}
     clients.forEach(client => {
-      let currentValue, previousValue, change, status, sparklineData, sparklineDates
+      let currentValue, previousValue, change, status, sparklineData
+      // Remove sparklineDates from this scope since it's declared later
       
       // Generate sparkline data (12 months of data)
       sparklineData = Array.from({ length: 12 }, () => Math.random() * 100)
       
       // Generate dates for the last 12 months
       const today = new Date()
-      sparklineDates = Array.from({ length: 12 }, (_, i) => {
+      const sparklineDates = Array.from({ length: 12 }, (_, i) => {
         const date = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1)
         return formatDate(date)
       })
