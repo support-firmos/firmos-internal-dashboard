@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "FirmOS",
+  title: "FirmOS Internal Dashboard",
   description: "Internal Dashboards",
 };
 
