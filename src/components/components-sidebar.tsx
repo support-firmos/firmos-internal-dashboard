@@ -105,15 +105,7 @@ const data = {
         {
           title: "Internal Dashboards",
           url: "/dashboard/internal",
-        },
-        {
-          title: "Dashboard 2",
-          url: "#",
-        },
-        {
-          title: "Dashboard 3",
-          url: "#",
-        },
+        }
       ],
     },
     {
