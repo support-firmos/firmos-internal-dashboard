@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { AlertCircle } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { ArrowUpDown } from 'lucide-react'
 
 // Helper function to format date
 const formatDate = (date: Date) => {
@@ -205,6 +207,29 @@ interface MetricData {
 
 export function MetricsDashboardComponent() {
   const [data] = useState(generateMockData())
+  const [sortOrders, setSortOrders] = useState<{[key: string]: 'asc' | 'desc' | null}>({})
+
+  const sortedData = useMemo(() => {
+    const sortedMetrics = { ...data };
+    Object.keys(sortedMetrics).forEach(metric => {
+      if (sortOrders[metric]) {
+        const sortedClients = Object.entries(sortedMetrics[metric]).sort(([, a], [, b]) => {
+          const changeA = parseFloat((a as ClientValues).change.toString().replace(/[^-\d.]/g, ''));
+          const changeB = parseFloat((b as ClientValues).change.toString().replace(/[^-\d.]/g, ''));
+          return sortOrders[metric] === 'desc' ? changeB - changeA : changeA - changeB;
+        });
+        sortedMetrics[metric] = Object.fromEntries(sortedClients);
+      }
+    });
+    return sortedMetrics;
+  }, [data, sortOrders]);
+
+  const toggleSortOrder = (metric: string) => {
+    setSortOrders(prevOrders => ({
+      ...prevOrders,
+      [metric]: prevOrders[metric] === 'desc' ? 'asc' : 'desc'
+    }));
+  };
 
   return (
     <Card className="w-full mx-auto">
@@ -214,10 +239,10 @@ export function MetricsDashboardComponent() {
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full space-y-4">
-            {Object.entries(data).map(([metric, clientData]: [string, MetricData]) => {
-              const negativeClients = Object.entries(clientData)
-                .filter(([_, values]) => values.status === "Negative")
-                .map(([client, _]) => client);
+          {Object.entries(sortedData).map(([metric, clientData]: [string, MetricData]) => {
+            const negativeClients = Object.entries(clientData)
+              .filter(([_, values]) => values.status === "Negative")
+              .map(([client, _]) => client);
             
             return (
               <AccordionItem value={metric} key={metric} className="relative">
@@ -225,25 +250,46 @@ export function MetricsDashboardComponent() {
                   {metric}
                 </AccordionTrigger>
                 {negativeClients.length > 0 && (
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <button className="absolute top-4 right-4 text-red-500 hover:text-red-700 focus:outline-none">
-                        <AlertCircle size={20} />
-                      </button>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Clients with Negative Status</h4>
-                        <ul className="list-disc list-inside text-sm">
-                          {negativeClients.map(client => (
-                            <li key={client}>{client}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
+                <HoverCard>
+                <HoverCardTrigger asChild>
+                  <button className="absolute top-4 right-4 text-red-500 hover:text-red-700 focus:outline-none">
+                    <AlertCircle size={20} />
+                  </button>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Clients with Negative Status</h4>
+                    <ul className="list-disc list-inside text-sm">
+                      {Object.entries(clientData)
+                        .filter(([_, values]) => values.status === "Negative")
+                        .map(([client, values]) => (
+                          <li key={client} className="flex justify-between items-center">
+                            <span>{client}</span>
+                            <span className="text-red-500 font-semibold">
+                              {formatValue(parseFloat(values.change.toString()), metric)}
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
                 )}
                 <AccordionContent>
+                <div className="flex justify-between items-center mb-2">
+                    <div></div> {/* Empty div for spacing */}
+                    <Button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSortOrder(metric);
+                      }} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Sort {sortOrders[metric] === 'desc' ? 'Descending' : 'Ascending'}
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
                   <ScrollArea className="h-[400px] w-full rounded-md border">
                   <div className="overflow-x-auto">
                       <Table>
