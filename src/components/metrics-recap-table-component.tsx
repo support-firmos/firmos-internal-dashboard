@@ -33,12 +33,12 @@ const generateMockData = () => {
   const clients = [
     "FirmOS",
     "Acme Corp",
-    "The CPA Dude",
-    "Amano-FAS",
-    "The Non-Profit CFO",
-    "Biotech CPA",
-    "CFO Medical",
-    "PORTICUS MARKETPLACE INC."
+    "Zenith Dynamics",
+    "Evergreen Solutions",
+    "Cobalt Nexus",
+    "Silverline Analytics",
+    "Meridian Ventures",
+    "Aurora Technologies"
   ]
 
   const metrics = [
