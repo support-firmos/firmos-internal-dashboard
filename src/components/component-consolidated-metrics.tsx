@@ -45,12 +45,12 @@ interface ConsolidatedMetricsProps {
 const CLIENTS: Client[] = [
   { key: 'FirmOS', name: 'FirmOS', color: '#FF6B6B' },
   { key: 'AcmeCorp', name: 'Acme Corp', color: '#4ECDC4' },
-  { key: 'CPADude', name: 'The CPA Dude', color: '#45B7D1' },
-  { key: 'AmanoFAS', name: 'Amano-FAS', color: '#FFA07A' },
-  { key: 'NonProfitCFO', name: 'The Non-Profit CFO', color: '#98FB98' },
-  { key: 'BiotechCPA', name: 'Biotech CPA', color: '#DDA0DD' },
-  { key: 'CFOMedical', name: 'CFO Medical', color: '#F0E68C' },
-  { key: 'Porticus', name: 'PORTICUS MARKETPLACE INC.', color: '#87CEFA' },
+  { key: 'ZenithDynamics', name: 'Zenith Dynamics', color: '#45B7D1' },
+  { key: 'EvergreenSolutions', name: 'Evergreen Solutions', color: '#FFA07A' },
+  { key: 'CobaltNexus', name: 'Cobalt Nexus', color: '#98FB98' },
+  { key: 'SilverlineAnalytics', name: 'Silverline Analytics', color: '#DDA0DD' },
+  { key: 'MeridianVentures', name: 'Meridian Ventures', color: '#F0E68C' },
+  { key: 'AuroraTechnologies', name: 'Aurora Technologies', color: '#87CEFA' },
 ]
 
 // Mock data fetching function
